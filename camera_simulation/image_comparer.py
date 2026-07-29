@@ -54,7 +54,7 @@ def load_image_files_to_matrix(base_path: Path, isos = None, fs = None, shs = No
         images[i][j][k] = img
     return images
     
-def simulate_images(hdr_path: Path, depth_path: Path | None = None, cam: sim.CameraSimulation | None = None, isos = None, fs = None, shs = None, input_factor = 5000, bar=True):
+def simulate_images(hdr_path: Path, depth_path: Path | None = None, cam: sim.CameraSimulation | None = None, isos = None, fs = None, shs = None, input_factor = 5000):
     if isos is None:
         isos = sim.iso_values
     if fs is None:
@@ -64,16 +64,24 @@ def simulate_images(hdr_path: Path, depth_path: Path | None = None, cam: sim.Cam
 
     if cam is None:
         cam = sim.CameraSimulation(log=False)
+    if str(hdr_path).split(".")[1] == "exr":
+        input_img = cv2.imread(hdr_path, flags=cv2.IMREAD_ANYDEPTH + cv2.IMREAD_COLOR)#*input_factor
+        if input_img is None:
+            raise ValueError(f"Could not load input image from {hdr_path}")
 
-    input_img = cv2.imread(hdr_path, flags=cv2.IMREAD_ANYDEPTH + cv2.IMREAD_COLOR)#*input_factor
-    if input_img is None:
-        raise ValueError(f"Could not load input image from {hdr_path}")
-    
-    input_img = input_img * input_factor 
-    input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB) #  type: ignore
+            input_img = input_img * input_factor 
+
+        input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB) #  type: ignore
+    else:
+        input_img = load_arw_file(hdr_path)
+
+   # print(input_img.dtype)
+    input_img = input_img * input_factor
     input_depth = None #cv2.imread(depth_path, flags=cv2.IMREAD_ANYDEPTH + cv2.IMREAD_COLOR)
 
-    images = np.zeros((3,3,3, 1440, 2560, 3), dtype=np.float32)
+    shape = input_img.shape
+
+    images = np.zeros((3,3,3, shape[0], shape[1], 3), dtype=np.float32)
 
 
     total = len(isos) * len(fs) * len(shs)

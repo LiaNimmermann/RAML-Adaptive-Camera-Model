@@ -2,3 +2,4 @@ __pycache__
 .vscode
 *imgs.npy
 Stuff_for_ssd/
+large_npy/
