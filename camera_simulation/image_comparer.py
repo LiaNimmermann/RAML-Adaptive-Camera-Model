@@ -1,6 +1,6 @@
 import rawpy
 from pathlib import Path
-import camera_simulation as sim
+import camera_simulation_gpu as sim
 import cv2
 import numpy as np
 from itertools import product
@@ -22,7 +22,7 @@ def load_arw_file(path: Path, norm_factor=(1/65535)):
     normalized = rgb * norm_factor
     return normalized
 
-def load_image_files_to_matrix(base_path: Path, isos = None, fs = None, shs = None, extension = "ARW", hw=(4024, 6024), target_hw=None):
+def load_image_files_to_matrix(base_path: Path, isos = None, fs = None, shs = None, extension = "ARW", hw=(4024, 6024), target_hw=None,rot_k=0):
     if isos is None:
         isos = ["250", "2000", "16000"]
     if fs is None:
@@ -31,8 +31,10 @@ def load_image_files_to_matrix(base_path: Path, isos = None, fs = None, shs = No
         shs = ["1-4", "1-60", "1-1000"]
     if target_hw is None:
         target_hw = hw
-
-    images = np.zeros((3,3,3, target_hw[0], target_hw[1], 3))
+    if rot_k%2 == 1:
+        images = np.zeros((3,3,3, target_hw[0], target_hw[1], 3))
+    else:
+        images = np.zeros((3,3,3, target_hw[1], target_hw[0], 3))
 
     total = len(isos) * len(fs) * len(shs)
 
@@ -50,6 +52,7 @@ def load_image_files_to_matrix(base_path: Path, isos = None, fs = None, shs = No
             img = load_arw_file(path)
         else:
             img = plt.imread(path)
+        img = np.rot90(img,k=rot_k)
         img = cv2.resize(img,(target_hw[1], target_hw[0]))
         images[i][j][k] = img
     return images
